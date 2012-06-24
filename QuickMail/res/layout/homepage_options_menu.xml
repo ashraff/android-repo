@@ -1,0 +1,16 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_below="@+id/list" >
+
+    <item
+        android:id="@+id/composemail"
+        android:title="@string/composemail"/>
+
+    <item
+        android:id="@+id/addaccount"
+        android:title="@string/addaccount"/>
+
+    <item
+        android:id="@+id/deleteaccount"
+        android:title="@string/deleteaccount"/>
+
+</menu>
