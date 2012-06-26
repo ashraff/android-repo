@@ -69,7 +69,7 @@ public class ORMDBAdapter extends OrmLiteSqliteOpenHelper {
 		serverInfo.setOutgoingServer("imap.gmail.com");
 		serverInfo.setIncomingServerPort(-1);
 		serverInfo.setOutGoingServerPort(-1);
-		serverInfo.setProvider("IMAPS");
+		serverInfo.setProvider("imaps");
 		serverInfo.setIncomingSSLServer("");
 		serverInfo.setOutgoingSSLServer("");
 		serverInfo.setIncomingSSLServerPort(-1);

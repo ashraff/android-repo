@@ -1,12 +1,17 @@
 package com.quickMail.application.entities;
 
+import java.io.Serializable;
+
 import com.j256.ormlite.table.DatabaseTable;
 import com.j256.ormlite.field.DatabaseField;
 
 
 @DatabaseTable(tableName="TBL_ACCOUNT_INFO")
-public class AccountInfo {
+public class AccountInfo implements Serializable {
 	
+	
+	private static final long serialVersionUID = -5583276007575258364L;
+
 	@DatabaseField(columnName="ACCOUNT_NAME")
 	private String accountName;
 	

@@ -2,6 +2,7 @@ package com.quickMail.application.mails;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
 
@@ -17,15 +18,21 @@ import javax.mail.Store;
 
 import android.util.Log;
 
+import com.quickMail.application.entities.AccountInfo;
 import com.quickMail.application.entities.MailMessage;
+import com.quickMail.application.utils.QuickMailConstants;
 
 public class MailRetriever {
 
 	private static final String TAG = MailRetriever.class.getName();
-	private String emailuser;
 	private String emailpassword;
-	private String emailserver;
 	private String emailprovider;
+	private String emailserver;
+	private String emailuser;
+
+	private boolean textIsHtml = false, saveAttachments = false;
+
+	List<String> attachments = new ArrayList<String>();
 
 	public MailRetriever(String emailuser, String emailpassword,
 			String emailserver, String emailprovider) {
@@ -35,7 +42,8 @@ public class MailRetriever {
 		this.emailprovider = emailprovider;
 	}
 
-	public int getMessagesCount() {
+	public Hashtable<String, Integer> getAllMessagesCount(
+			List<AccountInfo> acctInfoList) {
 		Session session;
 		Store store = null;
 		Folder folder = null;
@@ -48,55 +56,72 @@ public class MailRetriever {
 		props.setProperty("mail.imaps.auth.ntlm.disable", "true");
 
 		session = Session.getInstance(props, null);
-		int messagesCount = -1;
-
-		try {
-			store = session.getStore(emailprovider);
-			store.connect(emailserver, emailuser, emailpassword);
-			folder = store.getDefaultFolder();
-			if (folder == null)
-				throw new Exception("No default folder");
-			inboxfolder = folder.getFolder("INBOX");
-			if (inboxfolder == null)
-				throw new Exception("No INBOX");
-			inboxfolder.open(Folder.READ_ONLY);
-
-			messagesCount = inboxfolder.getMessageCount();
-
-			/*
-			 * Message[] msgs=inboxfolder.getMessages();
-			 * 
-			 * FetchProfile fp=new FetchProfile(); fp.add("Subject");
-			 * inboxfolder.fetch(msgs,fp);
-			 * 
-			 * for(int j=msgs.length-1;j>=0;j--) {
-			 * if(msgs[j].getSubject().startsWith("MailPage:")) {
-			 * setLatestMessage(msgs[j]); break; } }
-			 */
-
-			inboxfolder.close(false);
-			store.close();
-
-		} catch (NoSuchProviderException ex) {
-			ex.printStackTrace();
-		} catch (MessagingException ex) {
-			ex.printStackTrace();
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		} finally {
+		int messagesCount = 0;
+		Hashtable<String, Integer> mailCountMap = new Hashtable<String, Integer>();
+		
+		mailCountMap.put(QuickMailConstants.DEFAULT_MAILBOX_GROUP_NAME,messagesCount);
+		
+		for (AccountInfo acctInfo : acctInfoList) {
 			try {
-				if (store != null)
-					store.close();
+				messagesCount = 0;
+				store = session.getStore(acctInfo.getProvider().toLowerCase());
+				store.connect(acctInfo.getIncomingServer(),
+						acctInfo.getEmailId(), acctInfo.getPassword());
+				folder = store.getDefaultFolder();
+				if (folder == null)
+					throw new Exception("No default folder");
+				inboxfolder = folder.getFolder("INBOX");
+				if (inboxfolder == null)
+					throw new Exception("No INBOX");
+				inboxfolder.open(Folder.READ_ONLY);
+
+				messagesCount = inboxfolder.getMessageCount();
+
+				inboxfolder.close(false);
+				store.close();
+
+			} catch (NoSuchProviderException ex) {
+				ex.printStackTrace();
 			} catch (MessagingException ex) {
 				ex.printStackTrace();
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			} finally {
+				try {
+					if (store != null)
+						store.close();
+				} catch (MessagingException ex) {
+					ex.printStackTrace();
+				}
 			}
+
+			mailCountMap.put(acctInfo.getEmailId(), messagesCount);
+			if (acctInfo.getMailBoxGrp() == null
+					|| acctInfo.getMailBoxGrp().equals("")) {
+				if (mailCountMap
+						.containsKey(QuickMailConstants.DEFAULT_MAILBOX_GROUP_NAME)) {
+					int msgCount = mailCountMap
+							.get(QuickMailConstants.DEFAULT_MAILBOX_GROUP_NAME);
+					mailCountMap.put(
+							QuickMailConstants.DEFAULT_MAILBOX_GROUP_NAME,
+							msgCount + messagesCount);
+				} else
+					mailCountMap.put(
+							QuickMailConstants.DEFAULT_MAILBOX_GROUP_NAME,
+							messagesCount);
+
+			} else if (mailCountMap.containsKey(acctInfo.getMailBoxGrp())) {
+				int msgCount = mailCountMap.get(acctInfo.getMailBoxGrp());
+				mailCountMap.put(acctInfo.getMailBoxGrp(), msgCount
+						+ messagesCount);
+
+			} else
+				mailCountMap.put(acctInfo.getMailBoxGrp(), messagesCount);
+
 		}
 
-		return messagesCount;
+		return mailCountMap;
 	}
-
-	private boolean textIsHtml = false,saveAttachments = false;
-	List<String> attachments = new ArrayList<String>();
 
 	public List<MailMessage> getMessages() {
 		Session session;
@@ -135,7 +160,7 @@ public class MailRetriever {
 
 				for (int j = msgs.length - 1; j >= 0; j--) {
 					MailMessage message = new MailMessage();
-					
+
 					message.setSubject(msgs[j].getSubject());
 					textIsHtml = false;
 					saveAttachments = true;
@@ -144,7 +169,7 @@ public class MailRetriever {
 					getAttachments(msgs[j]);
 					message.setMessageType(textIsHtml ? "text/html"
 							: "text/plain");
-					
+
 					message.setAttachments(attachments);
 					message.setMessage(messageContent);
 
@@ -176,8 +201,7 @@ public class MailRetriever {
 
 		return mailMessageList;
 	}
-	
-	
+
 	private void getAttachments(Part p) throws MessagingException, IOException {
 		if (saveAttachments) {
 			if (p.isMimeType("multipart/*")) {
@@ -194,11 +218,11 @@ public class MailRetriever {
 				}
 			}
 		}
-	
+
 	}
 
 	private String getText(Part p) throws MessagingException, IOException {
-		
+
 		if (p.isMimeType("text/html")) {
 			String s = (String) p.getContent();
 			textIsHtml = true;
@@ -236,8 +260,18 @@ public class MailRetriever {
 			}
 		}
 
-		
-
 		return null;
 	}
+
+	/*
+	 * Message[] msgs=inboxfolder.getMessages();
+	 * 
+	 * FetchProfile fp=new FetchProfile(); fp.add("Subject");
+	 * inboxfolder.fetch(msgs,fp);
+	 * 
+	 * for(int j=msgs.length-1;j>=0;j--) {
+	 * if(msgs[j].getSubject().startsWith("MailPage:")) {
+	 * setLatestMessage(msgs[j]); break; } }
+	 */
+
 }

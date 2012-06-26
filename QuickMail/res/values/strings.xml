@@ -3,7 +3,7 @@
 
     <string name="hello">Hello World, QuickMailActivity!</string>
     <string name="app_name">QuickMail</string>
-    <string name="mails">Mails[10]</string>
+    <string name="mails">Mails[0]</string>
     <string name="composemail">Compose</string>
     <string name="addaccount">Add Account</string>
     <string name="deleteaccount">Delete Account</string>
@@ -14,7 +14,9 @@
     <string name="lbl.showpassword">Show Password</string>
     <string name="lbl.manualsetup">Manual Setup</string>
     <string name="lbl.next">Next</string>
-    
+    <string name="lbl.cancel">Cancel</string>
+    <string name="lbl.delete">Delete</string>
+   
     
     
      <string name="msg.invalidemailladdress">Invalid Email Address.Please re-enter.</string>

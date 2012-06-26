@@ -1,6 +1,7 @@
 package com.quickMail.application;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.text.InputType;
@@ -126,6 +127,11 @@ public class AddAccountActivity extends Activity {
 		} finally {
 			dbAdapter.close();
 		}
+		
+		
+		Intent in = new Intent();
+        setResult(1,in);
+        finish();
 
 	}
 

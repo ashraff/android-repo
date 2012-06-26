@@ -26,5 +26,35 @@
         android:layout_below="@+id/allMailsButton" >
     </ListView>
     
+    
+     <LinearLayout
+        android:id="@+id/lay.deleteButtonContainer"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:paddingBottom="0dip"
+        android:paddingTop="4dip" 
+        android:visibility="gone" >
+
+        <Button
+            android:id="@+id/btn.deletecancel"
+            android:layout_width="0.0dip"
+            android:layout_height="fill_parent"
+            android:layout_weight="1.0"
+            android:text="@string/lbl.cancel"
+            android:onClick="onCancelOnDeleteAccountClick" >
+        </Button>
+
+        <Button
+            android:id="@+id/btn.delete"
+            android:layout_width="0.0dip"
+            android:layout_height="fill_parent"
+            android:layout_weight="1.0"
+            android:text="@string/lbl.delete"
+            android:onClick="onDeleteAccountClick">
+        </Button>
+    </LinearLayout>    
+    
+    
 
 </RelativeLayout>

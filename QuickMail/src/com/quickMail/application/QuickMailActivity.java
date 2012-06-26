@@ -1,5 +1,7 @@
 package com.quickMail.application;
 
+import java.util.List;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -13,11 +15,16 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.quickMail.application.adapters.MailListAdapter;
+import com.quickMail.application.db.ORMDBAdapter;
+import com.quickMail.application.entities.AccountInfo;
 import com.quickMail.application.handlers.QuickMailModelListener;
 import com.quickMail.application.model.QuickMailModel;
 import com.quickMail.application.threads.MailCountFetcherThread;
@@ -28,14 +35,14 @@ public class QuickMailActivity extends Activity implements
 
 	private static final String QUICK_MAIL_MODEL_KEY = "com.quickMail.application.model.QuickMailModel";
 
-	static final String[] MAILS = new String[] { "asrafw@gmail.com" };
-
 	// background threads use this Handler to post messages to
 	// the main application thread
 	private final Handler mHandler = new Handler();
 
 	// this data model knows when a thread is fetching data
 	private QuickMailModel mQuickMailModel;
+	
+	private Thread mailCheckerThread;
 
 	// post this to the Handler when the background thread completes
 	private final Runnable mUpdateDisplayRunnable = new Runnable() {
@@ -44,12 +51,12 @@ public class QuickMailActivity extends Activity implements
 		}
 	};
 
-	ListView homeListView;
-
-	MailListAdapter mailListAdapter;
-
 	public void Log(String message) {
 		Toast.makeText(this, "Message is " + message, Toast.LENGTH_LONG).show();
+	}
+
+	public void onCancelOnDeleteAccountClick(View view) {
+		toggleDeleteView(false);
 	}
 
 	/** Called when the activity is first created. */
@@ -65,16 +72,20 @@ public class QuickMailActivity extends Activity implements
 						.getSerializable(QUICK_MAIL_MODEL_KEY);
 			}
 		}
+
+		List<AccountInfo> accountInfoList = getAccountInfo();
 		if (mQuickMailModel == null) {
-			// the first time in, create a new model
-			mQuickMailModel = new QuickMailModel();
+			mQuickMailModel = new QuickMailModel(accountInfoList);
 		}
 
-		MailCountFetcherThread allMailChecker = new MailCountFetcherThread(mQuickMailModel);
-		(new Thread(allMailChecker)).start();
+		MailCountFetcherThread allMailChecker = new MailCountFetcherThread(
+				mQuickMailModel);
+		mailCheckerThread = new Thread(allMailChecker);
+		mailCheckerThread.start();
 
-		homeListView = (ListView) findViewById(R.id.list);
-		mailListAdapter = new MailListAdapter(this, MAILS);
+		ListView homeListView = (ListView) findViewById(R.id.list);
+		MailListAdapter mailListAdapter = new MailListAdapter(this,
+				accountInfoList);
 		homeListView.setAdapter(mailListAdapter);
 
 		OnItemClickListener listener = new OnItemClickListener() {
@@ -103,6 +114,42 @@ public class QuickMailActivity extends Activity implements
 		return true;
 	}
 
+	public void onDeleteAccountClick(View view) {
+		ListView homeListView = (ListView) findViewById(R.id.list);
+
+		boolean acctDeleted = false;
+
+		ORMDBAdapter dbAdapter = new ORMDBAdapter(this);
+		RuntimeExceptionDao<AccountInfo, Integer> acctInfoDao = dbAdapter
+				.getAccountInfoDao();
+
+		for (int i = 0; i < homeListView.getChildCount(); i++) {
+
+			LinearLayout itemLayout = (LinearLayout) homeListView.getChildAt(i);
+
+			CheckBox cb = (CheckBox) itemLayout.getChildAt(1);
+			if (cb.isChecked()) {
+				AccountInfo acctInfo = (AccountInfo) homeListView.getAdapter()
+						.getItem(i);
+
+				acctInfoDao.delete(acctInfo);
+				acctDeleted = true;
+				Toast.makeText(
+						this,
+						"Account " + acctInfo.getEmailId()
+								+ " deleted Successfully.", Toast.LENGTH_LONG)
+						.show();
+			}
+		}
+
+		if (acctDeleted) {
+			updateListViewandModel();
+		}
+
+		toggleDeleteView(false);
+
+	}
+
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
@@ -118,11 +165,10 @@ public class QuickMailActivity extends Activity implements
 			break;
 		case R.id.addaccount:
 			Intent addAccountIntent = new Intent(this, AddAccountActivity.class);
-			startActivity(addAccountIntent);
+			startActivityForResult(addAccountIntent, R.id.addaccount);
 			break;
 		case R.id.deleteaccount:
-			Toast.makeText(this, "You pressed the icon and text!",
-					Toast.LENGTH_LONG).show();
+			toggleDeleteView(true);
 			break;
 		}
 		return true;
@@ -142,14 +188,67 @@ public class QuickMailActivity extends Activity implements
 
 	public void quickMailModelChanged(QuickMailModel hm) {
 		mHandler.post(mUpdateDisplayRunnable);
+	}
+
+	private List<AccountInfo> getAccountInfo() {
+		ORMDBAdapter dbAdapter = new ORMDBAdapter(this);
+		RuntimeExceptionDao<AccountInfo, Integer> acctInfoDao = dbAdapter
+				.getAccountInfoDao();
+		return acctInfoDao.queryForAll();
 
 	}
 
-	private void updateDisplay() {
+	private void toggleDeleteView(boolean showDeleteView) {
+
+		LinearLayout deleteButtonContainer = (LinearLayout) findViewById(R.id.lay_deleteButtonContainer);
+		deleteButtonContainer.setVisibility(showDeleteView ? View.VISIBLE
+				: View.GONE);
+
+		ListView homeListView = (ListView) findViewById(R.id.list);
+
+		for (int i = 0; i < homeListView.getChildCount(); i++) {
+
+			LinearLayout itemLayout = (LinearLayout) homeListView.getChildAt(i);
+
+			CheckBox cb = (CheckBox) itemLayout.getChildAt(1);
+			cb.setVisibility(showDeleteView ? View.VISIBLE : View.GONE);
+
+		}
+
 		Button allMailsButton = (Button) findViewById(R.id.allMailsButton);
-		allMailsButton.setText("Mails[" + mQuickMailModel.getData().get(
-				QuickMailConstants.DEFAULT_MAILBOX_GROUP_NAME)
-				+ "]");
+		allMailsButton.setVisibility(showDeleteView ? View.GONE : View.VISIBLE);
+	}
+
+	private void updateDisplay() {
+		if (mQuickMailModel.getData().containsKey(
+				QuickMailConstants.DEFAULT_MAILBOX_GROUP_NAME)) {
+			Button allMailsButton = (Button) findViewById(R.id.allMailsButton);
+			allMailsButton.setText("Mails["
+					+ mQuickMailModel.getData().get(
+							QuickMailConstants.DEFAULT_MAILBOX_GROUP_NAME)
+					+ "]");
+		}
+	}
+
+	private void updateListViewandModel() {
+		List<AccountInfo> accountInfoList = getAccountInfo();
+
+		mQuickMailModel.setAccountInfo(accountInfoList);
+
+		ListView homeListView = (ListView) findViewById(R.id.list);
+		MailListAdapter mailListAdapter = new MailListAdapter(this,
+				accountInfoList);
+		homeListView.setAdapter(mailListAdapter);
+		mailListAdapter.notifyDataSetChanged();
+		//mailCheckerThread.interrupt();
+
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (requestCode == R.id.addaccount && resultCode > 0) {
+			updateListViewandModel();
+		}
 	}
 
 	@Override

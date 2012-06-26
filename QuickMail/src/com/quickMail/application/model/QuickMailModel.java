@@ -2,10 +2,12 @@ package com.quickMail.application.model;
 
 import java.io.Serializable;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 
 import android.util.Log;
 
+import com.quickMail.application.entities.AccountInfo;
 import com.quickMail.application.handlers.QuickMailModelListener;
 
 public class QuickMailModel implements Serializable {
@@ -20,6 +22,12 @@ public class QuickMailModel implements Serializable {
 	private Hashtable<String, Integer> data = new Hashtable<String, Integer>();
 
 	private QuickMailModelListener quickMailModelListener;
+	
+	private List<AccountInfo> accountInfo;
+
+	public QuickMailModel(List<AccountInfo> accountInfo) {
+		this.setAccountInfo(accountInfo);
+	}
 
 	public synchronized Hashtable<String, Integer> getData() {
 		return data;
@@ -56,6 +64,14 @@ public class QuickMailModel implements Serializable {
 	public synchronized void setQuickMailModelListener(QuickMailModelListener l) {
 		quickMailModelListener = l;
 
+	}
+
+	public List<AccountInfo> getAccountInfo() {
+		return accountInfo;
+	}
+
+	public void setAccountInfo(List<AccountInfo> accountInfo) {
+		this.accountInfo = accountInfo;
 	}
 
 }

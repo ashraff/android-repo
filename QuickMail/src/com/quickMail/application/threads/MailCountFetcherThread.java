@@ -1,12 +1,9 @@
 package com.quickMail.application.threads;
 
-import java.util.Hashtable;
-
 import android.util.Log;
 
 import com.quickMail.application.mails.MailRetriever;
 import com.quickMail.application.model.QuickMailModel;
-import com.quickMail.application.utils.QuickMailConstants;
 
 public class MailCountFetcherThread implements Runnable {
 	
@@ -23,17 +20,14 @@ public class MailCountFetcherThread implements Runnable {
 	public void run() {
 		Log.d(MailCountFetcherThread.class.getName(),"AllMailsChecker started");
 		while (true) {
-			try {
-				
-				Hashtable<String, Integer> data = new Hashtable<String, Integer>(); 
-				data.put(QuickMailConstants.DEFAULT_MAILBOX_GROUP_NAME, retriever.getMessagesCount());
-				mQuickMailModel.setData(data);				
-				Thread.sleep(5000);
+			try {				
+				mQuickMailModel.setData(retriever.getAllMessagesCount(mQuickMailModel.getAccountInfo()));				
+				Thread.sleep(15000);
 			} catch (InterruptedException e) {
-
+				Log.e(MailCountFetcherThread.class.getName(), "Thread Interupted");
 			}
 		}
-
+		
 	}
 
 }
