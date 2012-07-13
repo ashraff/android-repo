@@ -40,7 +40,7 @@ public class AllMailViewActivity extends Activity {
 	ListView mailListView;
 
 	MailRetriever retriever = new MailRetriever("asrafw@gmail.com",
-			"Pirates11", "imap.gmail.com", "imaps");
+			"xxxxxx", "imap.gmail.com", "imaps");
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {

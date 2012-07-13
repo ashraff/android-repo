@@ -8,7 +8,7 @@ import com.quickMail.application.model.QuickMailModel;
 public class MailCountFetcherThread implements Runnable {
 	
 	MailRetriever retriever = new MailRetriever("asrafw@gmail.com",
-			"Pirates11", "imap.gmail.com", "imaps");
+			"xxxxxxxx", "imap.gmail.com", "imaps");
 	
 	private QuickMailModel mQuickMailModel;
 	
